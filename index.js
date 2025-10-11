@@ -93,7 +93,7 @@ client.on('messageCreate', async (message) => {
       .setDescription('يمكنك اختيار لون واحد فقط من القائمة أدناه.\nسيُضاف اللون الذي تختاره وتُزال الألوان السابقة تلقائيًا.')
       .setColor('#5865F2');
 
-    await message.reply({ embeds: [embed], components: [row] });
+    await message.channel.send({ embeds: [embed], components: [row] });
   }
 });
 
