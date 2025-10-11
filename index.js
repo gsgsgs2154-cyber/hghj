@@ -4,7 +4,8 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds, 
     GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildMessages
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
   ],
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
@@ -74,6 +75,25 @@ client.on('interactionCreate', async (interaction) => {
     } else {
       await interaction.reply({ content: errorMsg, ephemeral: true });
     }
+  }
+});
+
+client.on('messageCreate', async (message) => {
+  if (message.author.bot) return;
+  if (message.content.toLowerCase() === '!colors') {
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId('color_select')
+      .setPlaceholder('اختر لونك 🎨')
+      .addOptions(colors.map(c => ({ label: c.label, value: c.value })));
+
+    const row = new ActionRowBuilder().addComponents(menu);
+
+    const embed = new EmbedBuilder()
+      .setTitle('🎨 اختر لونك المفضل')
+      .setDescription('يمكنك اختيار لون واحد فقط من القائمة أدناه.\nسيُضاف اللون الذي تختاره وتُزال الألوان السابقة تلقائيًا.')
+      .setColor('#5865F2');
+
+    await message.reply({ embeds: [embed], components: [row] });
   }
 });
 

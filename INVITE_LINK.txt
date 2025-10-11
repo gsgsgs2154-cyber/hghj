@@ -5,6 +5,12 @@
 
 https://discord.com/oauth2/authorize?client_id=1426653220519804988&permissions=268437504&scope=bot%20applications.commands
 
+⚠️ **مهم جداً:** بعد استخدام الرابط، يجب تفعيل Message Content Intent في Discord Developer Portal:
+1. اذهب إلى: https://discord.com/developers/applications/1426653220519804988/bot
+2. في قسم "Privileged Gateway Intents"
+3. فعّل "MESSAGE CONTENT INTENT"
+4. احفظ التغييرات
+
 الصلاحيات المضمنة:
 ✅ إدارة الرتب (Manage Roles)
 ✅ إرسال الرسائل (Send Messages)
