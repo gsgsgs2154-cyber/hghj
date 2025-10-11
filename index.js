@@ -46,20 +46,30 @@ client.on('interactionCreate', async (interaction) => {
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isStringSelectMenu() || interaction.customId !== 'color_select') return;
 
-  const member = await interaction.guild.members.fetch(interaction.user.id);
-  const selected = colors.find(c => c.value === interaction.values[0]);
+  try {
+    const member = await interaction.guild.members.fetch(interaction.user.id);
+    const selected = colors.find(c => c.value === interaction.values[0]);
 
-  const colorRoles = colors.map(c => c.role);
-  await member.roles.remove(
-    member.roles.cache.filter(r => colorRoles.includes(r.name))
-  );
+    const colorRoles = colors.map(c => c.role);
+    await member.roles.remove(
+      member.roles.cache.filter(r => colorRoles.includes(r.name))
+    );
 
-  const role = interaction.guild.roles.cache.find(r => r.name === selected.role);
-  if (role) {
-    await member.roles.add(role);
-    await interaction.reply({ content: `✅ تم تغيير لونك إلى ${selected.label}!`, ephemeral: true });
-  } else {
-    await interaction.reply({ content: `⚠️ لم أجد رتبة باسم **${selected.role}**.`, ephemeral: true });
+    const role = interaction.guild.roles.cache.find(r => r.name === selected.role);
+    if (role) {
+      await member.roles.add(role);
+      await interaction.reply({ content: `✅ تم تغيير لونك إلى ${selected.label}!`, ephemeral: true });
+    } else {
+      await interaction.reply({ content: `⚠️ لم أجد رتبة باسم **${selected.role}**.`, ephemeral: true });
+    }
+  } catch (error) {
+    console.error('خطأ في تغيير اللون:', error);
+    const errorMsg = '❌ حدث خطأ أثناء تغيير لونك. تأكد من أن البوت لديه صلاحية إدارة الرتب.';
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp({ content: errorMsg, ephemeral: true });
+    } else {
+      await interaction.reply({ content: errorMsg, ephemeral: true });
+    }
   }
 });
 
