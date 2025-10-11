@@ -17,6 +17,7 @@ const colors = [
   { label: '🔵 أزرق', value: 'blue', role: 'Blue' },
   { label: '💗 زهري', value: 'pink', role: 'Pink' },
   { label: '⚪ سكني (Silver)', value: 'silver', role: 'Silver' },
+  { label: '⚪ أبيض', value: 'white', role: 'White' },
   { label: '💛 أصفر', value: 'yellow', role: 'Yellow' },
   { label: '🟠 برتقالي', value: 'orange', role: 'Orange' },
   { label: '💜 بنفسجي', value: 'purple', role: 'Purple' },
