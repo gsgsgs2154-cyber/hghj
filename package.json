@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "discord.js": "^14.23.2"
+    "discord.js": "^14.23.2",
+    "express": "^5.1.0"
   }
 }
