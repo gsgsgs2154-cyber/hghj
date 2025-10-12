@@ -1,12 +1,7 @@
-const { Client, GatewayIntentBits, Partials, ActionRowBuilder, StringSelectMenuBuilder, EmbedBuilder, AttachmentBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, ActionRowBuilder, StringSelectMenuBuilder, EmbedBuilder } = require('discord.js');
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds, 
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
@@ -17,31 +12,12 @@ const colors = [
   { label: '🔵 أزرق', value: 'blue', role: 'Blue' },
   { label: '💗 زهري', value: 'pink', role: 'Pink' },
   { label: '⚪ سكني (Silver)', value: 'silver', role: 'Silver' },
-  { label: '⚪ أبيض', value: 'white', role: 'White' },
   { label: '💛 أصفر', value: 'yellow', role: 'Yellow' },
   { label: '🟠 برتقالي', value: 'orange', role: 'Orange' },
   { label: '💜 بنفسجي', value: 'purple', role: 'Purple' },
   { label: '🌿 أخضر غامق', value: 'darkgreen', role: 'Dark Green' },
   { label: '🤎 بني غامق', value: 'brown', role: 'Brown' }
 ];
-
-function createColorMenu() {
-  const menu = new StringSelectMenuBuilder()
-    .setCustomId('color_select')
-    .setPlaceholder('اختر لونك 🎨')
-    .addOptions(colors.map(c => ({ label: c.label, value: c.value })));
-
-  const row = new ActionRowBuilder().addComponents(menu);
-
-  const attachment = new AttachmentBuilder('colors-banner.jpg');
-  const embed = new EmbedBuilder()
-    .setTitle('🎨 اختر لونك المفضل')
-    .setDescription('يمكنك اختيار لون واحد فقط من القائمة أدناه.\nسيُضاف اللون الذي تختاره وتُزال الألوان السابقة تلقائيًا.')
-    .setColor('#5865F2')
-    .setImage('attachment://colors-banner.jpg');
-
-  return { embed, row, attachment };
-}
 
 client.once('ready', () => {
   console.log(`✅ تم تسجيل الدخول كبوت: ${client.user.tag}`);
@@ -51,8 +27,19 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   if (interaction.commandName === 'colors') {
-    const { embed, row, attachment } = createColorMenu();
-    await interaction.reply({ embeds: [embed], components: [row], files: [attachment], ephemeral: false });
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId('color_select')
+      .setPlaceholder('اختر لونك 🎨')
+      .addOptions(colors.map(c => ({ label: c.label, value: c.value })));
+
+    const row = new ActionRowBuilder().addComponents(menu);
+
+    const embed = new EmbedBuilder()
+      .setTitle('🎨 اختر لونك المفضل')
+      .setDescription('يمكنك اختيار لون واحد فقط من القائمة أدناه.\nسيُضاف اللون الذي تختاره وتُزال الألوان السابقة تلقائيًا.')
+      .setColor('#5865F2');
+
+    await interaction.reply({ embeds: [embed], components: [row], ephemeral: false });
   }
 });
 
@@ -83,14 +70,6 @@ client.on('interactionCreate', async (interaction) => {
     } else {
       await interaction.reply({ content: errorMsg, ephemeral: true });
     }
-  }
-});
-
-client.on('messageCreate', async (message) => {
-  if (message.author.bot) return;
-  if (message.content.toLowerCase() === '!colors') {
-    const { embed, row, attachment } = createColorMenu();
-    await message.channel.send({ embeds: [embed], components: [row], files: [attachment] });
   }
 });
 

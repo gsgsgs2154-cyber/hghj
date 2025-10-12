@@ -16,8 +16,8 @@ Discord bot that allows users to select and change color roles through an intera
 - **package.json**: Node.js dependencies
 
 ## Features
-- Slash command `/colors` or text command `!colors` displays interactive dropdown menu
-- 12 color options with Arabic labels (including White)
+- Slash command `/colors` displays interactive dropdown menu
+- 11 color options with Arabic labels
 - Automatic removal of previous color roles
 - Role assignment based on user selection
 - Embedded messages with instructions
