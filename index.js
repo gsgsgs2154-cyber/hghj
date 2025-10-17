@@ -7,11 +7,14 @@ const client = new Client({
 
 const colors = [
   { label: '⚫ أسود', value: 'black', role: 'Black' },
+  { label: '🫒 زيتي', value: 'zz', role: 'Zz' },
+  { label: '⚪ ابيض', value: 'white', role: 'White' },
   { label: '🟢 أخضر فاتح', value: 'lightgreen', role: 'Light Green' },
   { label: '🔴 أحمر', value: 'red', role: 'Red' },
-  { label: '🔵 أزرق', value: 'blue', role: 'Blue' },
+  { label: '💙 أزرق سماوي', value: 'sky', role: 'Sky' },
+  { label: '🌀 كحلي', value: 'bb', role: 'Bb' },
   { label: '💗 زهري', value: 'pink', role: 'Pink' },
-  { label: '⚪ سكني (Silver)', value: 'silver', role: 'Silver' },
+  { label: '🩶 رمادي', value: 'silver', role: 'Silver' },
   { label: '💛 أصفر', value: 'yellow', role: 'Yellow' },
   { label: '🟠 برتقالي', value: 'orange', role: 'Orange' },
   { label: '💜 بنفسجي', value: 'purple', role: 'Purple' },
