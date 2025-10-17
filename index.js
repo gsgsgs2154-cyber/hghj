@@ -90,7 +90,7 @@ client.on('messageCreate', async (message) => {
     const embed = new EmbedBuilder()
       .setTitle('🎨 اختر لونك المفضل')
       .setDescription('يمكنك اختيار لون واحد فقط من القائمة أدناه.\nسيُضاف اللون الذي تختاره وتُزال الألوان السابقة تلقائيًا.')
-      .setImage('https://i.imgur.com/zYIlgBl.jpeg')
+      .setImage('https://images.pexels.com/photos/1191710/pexels-photo-1191710.jpeg')
       .setColor('#5865F2');
 
     await message.channel.send({ embeds: [embed], components: [row] });
