@@ -90,7 +90,7 @@ client.on('messageCreate', async (message) => {
     const embed = new EmbedBuilder()
       .setTitle('🎨 اختر لونك المفضل')
       .setDescription('يمكنك اختيار لون واحد فقط من القائمة أدناه.\nسيُضاف اللون الذي تختاره وتُزال الألوان السابقة تلقائيًا.')
-      .setImage('https://saharpaint.ir/wp-content/uploads/2024/03/1e92aaaa-1272-4cf6-aaac-f81e90aafbae.jpg')
+      .setImage('https://i.imgur.com/zYIlgBl.jpeg')
       .setColor('#5865F2');
 
     await message.channel.send({ embeds: [embed], components: [row] });
