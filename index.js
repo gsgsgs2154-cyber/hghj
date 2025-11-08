@@ -12,7 +12,6 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
-// 🎨 قائمة الألوان
 const colors = [
   { label: '⚫ أسود', value: 'black', role: 'Black' },
   { label: '🫒 زيتي', value: 'zz', role: 'zz' },
@@ -27,22 +26,21 @@ const colors = [
   { label: '🟠 برتقالي', value: 'orange', role: 'Orange' },
   { label: '💜 بنفسجي', value: 'purple', role: 'Purple' },
   { label: '🌿 أخضر غامق', value: 'darkgreen', role: 'Dark Green' },
-  { label: '🤎 بني غامق', value: 'brown', role: 'Brown' },
-  { label: '❌ إزالة جميع الألوان', value: 'remove_all', role: null } // <-- الخيار الجديد
+  { label: '🤎 بني غامق', value: 'brown', role: 'Brown' }
 ];
 
 client.once('ready', () => {
   console.log(`✅ تم تسجيل الدخول كبوت: ${client.user.tag}`);
 });
 
-// 📜 إرسال القائمة في الشات
+// إرسال القائمة
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (message.content === '!colors') {
     const menu = new StringSelectMenuBuilder()
       .setCustomId('color_select')
-      .setPlaceholder('🎨 اختر ألوانك المفضلة أو احذفها')
-      .setMinValues(1)
+      .setPlaceholder('🎨 اختر ألوانك المفضلة')
+      .setMinValues(0)
       .setMaxValues(colors.length)
       .addOptions(colors.map(c => ({ label: c.label, value: c.value })));
 
@@ -50,7 +48,7 @@ client.on('messageCreate', async (message) => {
 
     const embed = new EmbedBuilder()
       .setTitle('🎨 اختر ألوانك المفضلة')
-      .setDescription('اختر الألوان اللي تحبها، أو اختر **❌ إزالة جميع الألوان** لحذفها كلها من حسابك.')
+      .setDescription('اختر الألوان اللي تحبها، ولو شلت لون من القائمة راح تنشال رتبته منك تلقائيًا ✨')
       .setImage('https://images.pexels.com/photos/1191710/pexels-photo-1191710.jpeg')
       .setColor('#5865F2');
 
@@ -58,38 +56,27 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-// 🎯 التفاعل مع القائمة
+// التعامل مع التفاعل
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isStringSelectMenu() || interaction.customId !== 'color_select') return;
 
   try {
     const member = await interaction.guild.members.fetch(interaction.user.id);
     const selectedValues = interaction.values;
-    const colorRoles = colors.filter(c => c.role).map(c => c.role);
 
-    // 🧹 لو اختار إزالة كل الألوان
-    if (selectedValues.includes('remove_all')) {
-      const rolesToRemove = member.roles.cache.filter(r => colorRoles.includes(r.name));
-      if (rolesToRemove.size > 0) {
-        await member.roles.remove(rolesToRemove);
-        return await interaction.reply({ content: '🧹 تم إزالة جميع ألوانك بنجاح!', ephemeral: true });
-      } else {
-        return await interaction.reply({ content: 'ℹ️ ما عندك أي ألوان حالياً.', ephemeral: true });
-      }
-    }
-
-    // 🔄 تحديث الألوان بناءً على الاختيارات
+    const colorRoles = colors.map(c => c.role);
     const rolesToAdd = [];
     const rolesToRemove = [];
 
     for (const color of colors) {
-      if (!color.role) continue;
       const role = interaction.guild.roles.cache.find(r => r.name === color.role);
       if (!role) continue;
 
+      // لو اللون مختار بالمنيو، ضيفه
       if (selectedValues.includes(color.value)) {
         if (!member.roles.cache.has(role.id)) rolesToAdd.push(role);
       } else {
+        // لو مو مختار وشغال عنده، احذفه
         if (member.roles.cache.has(role.id)) rolesToRemove.push(role);
       }
     }
@@ -98,23 +85,21 @@ client.on('interactionCreate', async (interaction) => {
     if (rolesToRemove.length > 0) await member.roles.remove(rolesToRemove);
 
     await interaction.reply({ content: '✅ تم تحديث ألوانك بنجاح 🎨', ephemeral: true });
-
   } catch (error) {
     console.error('❌ خطأ في تعديل الألوان:', error);
     await interaction.reply({
-      content: '❌ حدث خطأ أثناء تحديث ألوانك. تأكد من أن البوت يمتلك صلاحية إدارة الرتب.',
+      content: '❌ حدث خطأ أثناء تحديث ألوانك. تأكد أن البوت لديه صلاحية إدارة الرتب.',
       ephemeral: true
     });
   }
 });
 
-// 🚀 تشغيل السيرفر والبوت
+// تشغيل السيرفر والبوت
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 if (!TOKEN) {
   console.error('❌ لم يتم العثور على DISCORD_BOT_TOKEN');
   process.exit(1);
 }
-
 client.login(TOKEN);
 
 app.get("/", (req, res) => {
