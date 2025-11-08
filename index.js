@@ -33,14 +33,14 @@ client.once('ready', () => {
   console.log(`✅ تم تسجيل الدخول كبوت: ${client.user.tag}`);
 });
 
-// أمر إرسال قائمة الألوان
+// إرسال القائمة
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (message.content === '!colors') {
     const menu = new StringSelectMenuBuilder()
       .setCustomId('color_select')
-      .setPlaceholder('اختر ألوانك المفضلة 🎨')
-      .setMinValues(1)
+      .setPlaceholder('🎨 اختر ألوانك المفضلة')
+      .setMinValues(0)
       .setMaxValues(colors.length)
       .addOptions(colors.map(c => ({ label: c.label, value: c.value })));
 
@@ -48,7 +48,7 @@ client.on('messageCreate', async (message) => {
 
     const embed = new EmbedBuilder()
       .setTitle('🎨 اختر ألوانك المفضلة')
-      .setDescription('اختر الألوان التي تحبها من القائمة بالأسفل.\nيمكنك اختيار أكثر من لون، وسيتم منحك الرتب تلقائيًا حسب اختياراتك 💫')
+      .setDescription('اختر الألوان اللي تحبها، ولو شلت لون من القائمة راح تنشال رتبته منك تلقائيًا ✨')
       .setImage('https://images.pexels.com/photos/1191710/pexels-photo-1191710.jpeg')
       .setColor('#5865F2');
 
@@ -56,7 +56,7 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-// التفاعل مع قائمة الألوان
+// التعامل مع التفاعل
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isStringSelectMenu() || interaction.customId !== 'color_select') return;
 
@@ -72,34 +72,34 @@ client.on('interactionCreate', async (interaction) => {
       const role = interaction.guild.roles.cache.find(r => r.name === color.role);
       if (!role) continue;
 
+      // لو اللون مختار بالمنيو، ضيفه
       if (selectedValues.includes(color.value)) {
         if (!member.roles.cache.has(role.id)) rolesToAdd.push(role);
       } else {
+        // لو مو مختار وشغال عنده، احذفه
         if (member.roles.cache.has(role.id)) rolesToRemove.push(role);
       }
     }
 
-    // تعديل الرتب
     if (rolesToAdd.length > 0) await member.roles.add(rolesToAdd);
     if (rolesToRemove.length > 0) await member.roles.remove(rolesToRemove);
 
-    await interaction.reply({ content: `✅ تم تحديث ألوانك بنجاح 🎨`, ephemeral: true });
+    await interaction.reply({ content: '✅ تم تحديث ألوانك بنجاح 🎨', ephemeral: true });
   } catch (error) {
     console.error('❌ خطأ في تعديل الألوان:', error);
     await interaction.reply({
-      content: '❌ حدث خطأ أثناء تحديث ألوانك. تأكد من أن البوت يمتلك صلاحية إدارة الرتب.',
+      content: '❌ حدث خطأ أثناء تحديث ألوانك. تأكد أن البوت لديه صلاحية إدارة الرتب.',
       ephemeral: true
     });
   }
 });
 
-// تشغيل البوت والسيرفر
+// تشغيل السيرفر والبوت
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 if (!TOKEN) {
-  console.error('❌ خطأ: لم يتم العثور على DISCORD_BOT_TOKEN في متغيرات البيئة');
+  console.error('❌ لم يتم العثور على DISCORD_BOT_TOKEN');
   process.exit(1);
 }
-
 client.login(TOKEN);
 
 app.get("/", (req, res) => {
