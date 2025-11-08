@@ -26,7 +26,8 @@ const colors = [
   { label: '🟠 برتقالي', value: 'orange', role: 'Orange' },
   { label: '💜 بنفسجي', value: 'purple', role: 'Purple' },
   { label: '🌿 أخضر غامق', value: 'darkgreen', role: 'Dark Green' },
-  { label: '🤎 بني غامق', value: 'brown', role: 'Brown' }
+  { label: '🤎 بني غامق', value: 'brown', role: 'Brown' },
+  { label: '❌ إزالة اللون', value: 'remove', role: null } // 👈 خيار لإزالة اللون تماماً
 ];
 
 client.once('ready', () => {
@@ -39,16 +40,16 @@ client.on('messageCreate', async (message) => {
   if (message.content === '!colors') {
     const menu = new StringSelectMenuBuilder()
       .setCustomId('color_select')
-      .setPlaceholder('🎨 اختر ألوانك المفضلة')
-      .setMinValues(0)
-      .setMaxValues(colors.length)
+      .setPlaceholder('🎨 اختر لونك المفضل أو أزل اللون')
+      .setMinValues(1)
+      .setMaxValues(1) // ✅ يقدر يختار لون واحد فقط
       .addOptions(colors.map(c => ({ label: c.label, value: c.value })));
 
     const row = new ActionRowBuilder().addComponents(menu);
 
     const embed = new EmbedBuilder()
-      .setTitle('🎨 اختر ألوانك المفضلة')
-      .setDescription('اختر الألوان اللي تحبها، ولو شلت لون من القائمة راح تنشال رتبته منك تلقائيًا ✨')
+      .setTitle('🎨 اختر لونك المفضل')
+      .setDescription('يمكنك اختيار **لون واحد فقط** من القائمة أدناه.\nلو اخترت "❌ إزالة اللون" راح تنشال كل ألوانك.')
       .setImage('https://images.pexels.com/photos/1191710/pexels-photo-1191710.jpeg')
       .setColor('#5865F2');
 
@@ -62,33 +63,40 @@ client.on('interactionCreate', async (interaction) => {
 
   try {
     const member = await interaction.guild.members.fetch(interaction.user.id);
-    const selectedValues = interaction.values;
+    const selectedValue = interaction.values[0];
+    const colorRoles = colors.filter(c => c.role).map(c => c.role);
 
-    const colorRoles = colors.map(c => c.role);
-    const rolesToAdd = [];
-    const rolesToRemove = [];
-
-    for (const color of colors) {
-      const role = interaction.guild.roles.cache.find(r => r.name === color.role);
-      if (!role) continue;
-
-      // لو اللون مختار بالمنيو، ضيفه
-      if (selectedValues.includes(color.value)) {
-        if (!member.roles.cache.has(role.id)) rolesToAdd.push(role);
+    // 🔸 إزالة كل الألوان إذا اختار "إزالة اللون"
+    if (selectedValue === 'remove') {
+      const rolesToRemove = member.roles.cache.filter(r => colorRoles.includes(r.name));
+      if (rolesToRemove.size > 0) {
+        await member.roles.remove(rolesToRemove);
+        return await interaction.reply({ content: '🧹 تم إزالة لونك بنجاح!', ephemeral: true });
       } else {
-        // لو مو مختار وشغال عنده، احذفه
-        if (member.roles.cache.has(role.id)) rolesToRemove.push(role);
+        return await interaction.reply({ content: 'ℹ️ ما عندك أي لون حالياً.', ephemeral: true });
       }
     }
 
-    if (rolesToAdd.length > 0) await member.roles.add(rolesToAdd);
-    if (rolesToRemove.length > 0) await member.roles.remove(rolesToRemove);
+    // 🔄 تحديث اللون الواحد فقط
+    const selected = colors.find(c => c.value === selectedValue);
+    const role = interaction.guild.roles.cache.find(r => r.name === selected.role);
 
-    await interaction.reply({ content: '✅ تم تحديث ألوانك بنجاح 🎨', ephemeral: true });
+    if (!role) {
+      return await interaction.reply({ content: `⚠️ ما لقيت رتبة باسم **${selected.role}**.`, ephemeral: true });
+    }
+
+    // إزالة كل الألوان القديمة
+    const rolesToRemove = member.roles.cache.filter(r => colorRoles.includes(r.name));
+    if (rolesToRemove.size > 0) await member.roles.remove(rolesToRemove);
+
+    // إضافة اللون الجديد
+    await member.roles.add(role);
+    await interaction.reply({ content: `✅ تم تغيير لونك إلى ${selected.label}!`, ephemeral: true });
+
   } catch (error) {
-    console.error('❌ خطأ في تعديل الألوان:', error);
+    console.error('❌ خطأ في تعديل اللون:', error);
     await interaction.reply({
-      content: '❌ حدث خطأ أثناء تحديث ألوانك. تأكد أن البوت لديه صلاحية إدارة الرتب.',
+      content: '❌ حدث خطأ أثناء تغيير لونك. تأكد أن البوت يمتلك صلاحية إدارة الرتب.',
       ephemeral: true
     });
   }
