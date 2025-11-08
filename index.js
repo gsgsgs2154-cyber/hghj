@@ -15,7 +15,7 @@ const client = new Client({
 const colors = [
   { label: '⚫ أسود', value: 'black', role: 'Black' },
   { label: '🫒 زيتي', value: 'zz', role: 'zz' },
-  { label: '⚪ ابيض', value: 'white', role: 'White' },
+  { label: '⚪ أبيض', value: 'white', role: 'White' },
   { label: '🟢 أخضر فاتح', value: 'lightgreen', role: 'Light Green' },
   { label: '🔴 أحمر', value: 'red', role: 'Red' },
   { label: '💙 أزرق سماوي', value: 'sky', role: 'sky' },
@@ -33,76 +33,22 @@ client.once('ready', () => {
   console.log(`✅ تم تسجيل الدخول كبوت: ${client.user.tag}`);
 });
 
-// أمر سلاش /colors
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
-
-  if (interaction.commandName === 'colors') {
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId('color_select')
-      .setPlaceholder('اختر لونك 🎨')
-      .addOptions(colors.map(c => ({ label: c.label, value: c.value })));
-
-    const row = new ActionRowBuilder().addComponents(menu);
-
-    const embed = new EmbedBuilder()
-      .setTitle('🎨 اختر لونك المفضل')
-      .setDescription('يمكنك اختيار لون واحد فقط من القائمة أدناه.\nسيُضاف اللون الذي تختاره وتُزال الألوان السابقة تلقائيًا.\nإذا اخترت نفس اللون مرة ثانية فسيتم إزالته منك.')
-      .setColor('#5865F2');
-
-    await interaction.reply({ embeds: [embed], components: [row], ephemeral: false });
-  }
-});
-
-// التفاعل مع القائمة (الألوان)
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isStringSelectMenu() || interaction.customId !== 'color_select') return;
-
-  try {
-    const member = await interaction.guild.members.fetch(interaction.user.id);
-    const selected = colors.find(c => c.value === interaction.values[0]);
-    const colorRoles = colors.map(c => c.role);
-
-    const role = interaction.guild.roles.cache.find(r => r.name === selected.role);
-    if (!role) {
-      return await interaction.reply({ content: `⚠️ لم أجد رتبة باسم **${selected.role}**.`, ephemeral: true });
-    }
-
-    // لو عنده نفس اللون → يشيلها
-    if (member.roles.cache.has(role.id)) {
-      await member.roles.remove(role);
-      await interaction.reply({ content: `🧹 تم إزالة اللون ${selected.label}!`, ephemeral: true });
-    } else {
-      // يشيل كل الألوان القديمة ويضيف الجديد
-      await member.roles.remove(member.roles.cache.filter(r => colorRoles.includes(r.name)));
-      await member.roles.add(role);
-      await interaction.reply({ content: `✅ تم تغيير لونك إلى ${selected.label}!`, ephemeral: true });
-    }
-  } catch (error) {
-    console.error('خطأ في تغيير اللون:', error);
-    const errorMsg = '❌ حدث خطأ أثناء تغيير لونك. تأكد من أن البوت لديه صلاحية إدارة الرتب.';
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: errorMsg, ephemeral: true });
-    } else {
-      await interaction.reply({ content: errorMsg, ephemeral: true });
-    }
-  }
-});
-
-// أمر !colors في الشات العادي
+// أمر إرسال قائمة الألوان
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (message.content === '!colors') {
     const menu = new StringSelectMenuBuilder()
       .setCustomId('color_select')
-      .setPlaceholder('اختر لونك 🎨')
+      .setPlaceholder('اختر ألوانك المفضلة 🎨')
+      .setMinValues(1)
+      .setMaxValues(colors.length)
       .addOptions(colors.map(c => ({ label: c.label, value: c.value })));
 
     const row = new ActionRowBuilder().addComponents(menu);
 
     const embed = new EmbedBuilder()
-      .setTitle('🎨 اختر لونك المفضل')
-      .setDescription('يمكنك اختيار لون واحد فقط من القائمة أدناه.\nسيُضاف اللون الذي تختاره وتُزال الألوان السابقة تلقائيًا.\nإذا اخترت نفس اللون مرة ثانية فسيتم إزالته منك.')
+      .setTitle('🎨 اختر ألوانك المفضلة')
+      .setDescription('اختر الألوان التي تحبها من القائمة بالأسفل.\nيمكنك اختيار أكثر من لون، وسيتم منحك الرتب تلقائيًا حسب اختياراتك 💫')
       .setImage('https://images.pexels.com/photos/1191710/pexels-photo-1191710.jpeg')
       .setColor('#5865F2');
 
@@ -110,7 +56,44 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-// ✅ توكن البوت وتشغيل السيرفر
+// التفاعل مع قائمة الألوان
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isStringSelectMenu() || interaction.customId !== 'color_select') return;
+
+  try {
+    const member = await interaction.guild.members.fetch(interaction.user.id);
+    const selectedValues = interaction.values;
+
+    const colorRoles = colors.map(c => c.role);
+    const rolesToAdd = [];
+    const rolesToRemove = [];
+
+    for (const color of colors) {
+      const role = interaction.guild.roles.cache.find(r => r.name === color.role);
+      if (!role) continue;
+
+      if (selectedValues.includes(color.value)) {
+        if (!member.roles.cache.has(role.id)) rolesToAdd.push(role);
+      } else {
+        if (member.roles.cache.has(role.id)) rolesToRemove.push(role);
+      }
+    }
+
+    // تعديل الرتب
+    if (rolesToAdd.length > 0) await member.roles.add(rolesToAdd);
+    if (rolesToRemove.length > 0) await member.roles.remove(rolesToRemove);
+
+    await interaction.reply({ content: `✅ تم تحديث ألوانك بنجاح 🎨`, ephemeral: true });
+  } catch (error) {
+    console.error('❌ خطأ في تعديل الألوان:', error);
+    await interaction.reply({
+      content: '❌ حدث خطأ أثناء تحديث ألوانك. تأكد من أن البوت يمتلك صلاحية إدارة الرتب.',
+      ephemeral: true
+    });
+  }
+});
+
+// تشغيل البوت والسيرفر
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 if (!TOKEN) {
   console.error('❌ خطأ: لم يتم العثور على DISCORD_BOT_TOKEN في متغيرات البيئة');
@@ -119,7 +102,6 @@ if (!TOKEN) {
 
 client.login(TOKEN);
 
-// 🌐 Web server (للتشغيل في الاستضافة)
 app.get("/", (req, res) => {
   res.send("✅ Bot is running!");
 });
