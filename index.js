@@ -1,7 +1,14 @@
 const { Client, GatewayIntentBits, Partials, ActionRowBuilder, StringSelectMenuBuilder, EmbedBuilder } = require('discord.js');
+const express = require("express");
+const app = express();
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ],
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
@@ -26,6 +33,7 @@ client.once('ready', () => {
   console.log(`✅ تم تسجيل الدخول كبوت: ${client.user.tag}`);
 });
 
+// أمر سلاش /colors
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -39,31 +47,36 @@ client.on('interactionCreate', async (interaction) => {
 
     const embed = new EmbedBuilder()
       .setTitle('🎨 اختر لونك المفضل')
-      .setDescription('يمكنك اختيار لون واحد فقط من القائمة أدناه.\nسيُضاف اللون الذي تختاره وتُزال الألوان السابقة تلقائيًا.')
+      .setDescription('يمكنك اختيار لون واحد فقط من القائمة أدناه.\nسيُضاف اللون الذي تختاره وتُزال الألوان السابقة تلقائيًا.\nإذا اخترت نفس اللون مرة ثانية فسيتم إزالته منك.')
       .setColor('#5865F2');
 
     await interaction.reply({ embeds: [embed], components: [row], ephemeral: false });
   }
 });
 
+// التفاعل مع القائمة (الألوان)
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isStringSelectMenu() || interaction.customId !== 'color_select') return;
 
   try {
     const member = await interaction.guild.members.fetch(interaction.user.id);
     const selected = colors.find(c => c.value === interaction.values[0]);
-
     const colorRoles = colors.map(c => c.role);
-    await member.roles.remove(
-      member.roles.cache.filter(r => colorRoles.includes(r.name))
-    );
 
     const role = interaction.guild.roles.cache.find(r => r.name === selected.role);
-    if (role) {
+    if (!role) {
+      return await interaction.reply({ content: `⚠️ لم أجد رتبة باسم **${selected.role}**.`, ephemeral: true });
+    }
+
+    // لو عنده نفس اللون → يشيلها
+    if (member.roles.cache.has(role.id)) {
+      await member.roles.remove(role);
+      await interaction.reply({ content: `🧹 تم إزالة اللون ${selected.label}!`, ephemeral: true });
+    } else {
+      // يشيل كل الألوان القديمة ويضيف الجديد
+      await member.roles.remove(member.roles.cache.filter(r => colorRoles.includes(r.name)));
       await member.roles.add(role);
       await interaction.reply({ content: `✅ تم تغيير لونك إلى ${selected.label}!`, ephemeral: true });
-    } else {
-      await interaction.reply({ content: `⚠️ لم أجد رتبة باسم **${selected.role}**.`, ephemeral: true });
     }
   } catch (error) {
     console.error('خطأ في تغيير اللون:', error);
@@ -76,7 +89,7 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
-// ✅ إضافة الرد على !colors بدون منشن
+// أمر !colors في الشات العادي
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (message.content === '!colors') {
@@ -89,7 +102,7 @@ client.on('messageCreate', async (message) => {
 
     const embed = new EmbedBuilder()
       .setTitle('🎨 اختر لونك المفضل')
-      .setDescription('يمكنك اختيار لون واحد فقط من القائمة أدناه.\nسيُضاف اللون الذي تختاره وتُزال الألوان السابقة تلقائيًا.')
+      .setDescription('يمكنك اختيار لون واحد فقط من القائمة أدناه.\nسيُضاف اللون الذي تختاره وتُزال الألوان السابقة تلقائيًا.\nإذا اخترت نفس اللون مرة ثانية فسيتم إزالته منك.')
       .setImage('https://images.pexels.com/photos/1191710/pexels-photo-1191710.jpeg')
       .setColor('#5865F2');
 
@@ -97,6 +110,7 @@ client.on('messageCreate', async (message) => {
   }
 });
 
+// ✅ توكن البوت وتشغيل السيرفر
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 if (!TOKEN) {
   console.error('❌ خطأ: لم يتم العثور على DISCORD_BOT_TOKEN في متغيرات البيئة');
@@ -104,9 +118,8 @@ if (!TOKEN) {
 }
 
 client.login(TOKEN);
-const express = require("express");
-const app = express();
 
+// 🌐 Web server (للتشغيل في الاستضافة)
 app.get("/", (req, res) => {
   res.send("✅ Bot is running!");
 });
