@@ -39,16 +39,16 @@ client.on('messageCreate', async (message) => {
   if (message.content === '!colors') {
     const menu = new StringSelectMenuBuilder()
       .setCustomId('color_select')
-      .setPlaceholder('🎨 اختر لونك المفضل')
-      .setMinValues(1)
-      .setMaxValues(1)
+      .setPlaceholder('🎨 اختر ألوانك المفضلة')
+      .setMinValues(0)
+      .setMaxValues(colors.length)
       .addOptions(colors.map(c => ({ label: c.label, value: c.value })));
 
     const row = new ActionRowBuilder().addComponents(menu);
 
     const embed = new EmbedBuilder()
-      .setTitle('🎨 اختر لونك المفضل')
-      .setDescription('اختر لون واحد فقط 🎨\nلو ضغطت على نفس اللون اللي عندك، راح تنشال رتبته منك تلقائيًا ⚡')
+      .setTitle('🎨 اختر ألوانك المفضلة')
+      .setDescription('اختر اللون اللي تحبه.\nلو شلت لون من القائمة راح تنشال رتبته منك تلقائيًا ✨')
       .setImage('https://images.pexels.com/photos/1191710/pexels-photo-1191710.jpeg')
       .setColor('#5865F2');
 
@@ -56,60 +56,55 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-// التعامل مع التفاعل (select menu)
+// التعامل مع التفاعل
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isStringSelectMenu() || interaction.customId !== 'color_select') return;
 
   try {
+    // ✅ هنا التعديل الجديد:
+    if (interaction.values.length > 1) {
+      return await interaction.reply({
+        content: '⚠️ يجب أن تختار لونًا واحدًا فقط!',
+        ephemeral: true
+      });
+    }
+
     const member = await interaction.guild.members.fetch(interaction.user.id);
-    const selectedValue = interaction.values[0];
-    const selectedColor = colors.find(c => c.value === selectedValue);
+    const selectedValues = interaction.values;
     const colorRoles = colors.map(c => c.role);
+    const rolesToAdd = [];
+    const rolesToRemove = [];
 
-    const role = interaction.guild.roles.cache.find(r => r.name === selectedColor.role);
-    if (!role) {
-      return await interaction.reply({
-        content: `⚠️ لم أجد رتبة باسم **${selectedColor.role}**.`,
-        ephemeral: true
-      });
+    for (const color of colors) {
+      const role = interaction.guild.roles.cache.find(r => r.name === color.role);
+      if (!role) continue;
+
+      // لو اللون مختار بالمنيو، ضيفه
+      if (selectedValues.includes(color.value)) {
+        if (!member.roles.cache.has(role.id)) rolesToAdd.push(role);
+      } else {
+        // لو مو مختار وشغال عنده، احذفه
+        if (member.roles.cache.has(role.id)) rolesToRemove.push(role);
+      }
     }
 
-    // ✅ إذا عنده نفس اللون، يشيله
-    if (member.roles.cache.has(role.id)) {
-      await member.roles.remove(role);
-      return await interaction.reply({
-        content: `🧹 تمت إزالة لونك ${selectedColor.label}!`,
-        ephemeral: true
-      });
-    }
+    if (rolesToAdd.length > 0) await member.roles.add(rolesToAdd);
+    if (rolesToRemove.length > 0) await member.roles.remove(rolesToRemove);
 
-    // ✅ إذا اختار لون جديد
-    // احذف كل الألوان القديمة
-    const oldColors = member.roles.cache.filter(r => colorRoles.includes(r.name));
-    if (oldColors.size > 0) await member.roles.remove(oldColors);
-
-    // ضيف اللون الجديد
-    await member.roles.add(role);
+    await interaction.reply({ content: '✅ تم تحديث لونك بنجاح 🎨', ephemeral: true });
+  } catch (error) {
+    console.error('❌ خطأ في تعديل الألوان:', error);
     await interaction.reply({
-      content: `✅ تم تغيير لونك إلى ${selectedColor.label}!`,
+      content: '❌ حدث خطأ أثناء تحديث لونك. تأكد أن البوت لديه صلاحية إدارة الرتب.',
       ephemeral: true
     });
-
-  } catch (error) {
-    console.error('❌ خطأ في تعديل اللون:', error);
-    const errorMsg = '❌ حدث خطأ أثناء تغيير لونك. تأكد أن البوت لديه صلاحية إدارة الرتب.';
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: errorMsg, ephemeral: true });
-    } else {
-      await interaction.reply({ content: errorMsg, ephemeral: true });
-    }
   }
 });
 
 // تشغيل السيرفر والبوت
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 if (!TOKEN) {
-  console.error('❌ خطأ: لم يتم العثور على DISCORD_BOT_TOKEN في متغيرات البيئة');
+  console.error('❌ لم يتم العثور على DISCORD_BOT_TOKEN');
   process.exit(1);
 }
 client.login(TOKEN);
