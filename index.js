@@ -12,7 +12,7 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
-// ======== يوزرز مسموح لهم بدون صلاحية ========
+// ======== يوزرز مسموح لهم ========
 const ALLOWED_USERS = [
   '809903116865634344',
   '937018739344408608'
@@ -40,14 +40,14 @@ client.once('ready', () => {
   console.log(`✅ تم تسجيل الدخول كبوت: ${client.user.tag}`);
 });
 
-// ======== إرسال قائمة الألوان ========
+// ======== قائمة الألوان ========
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
   if (message.content === '!colors') {
     const menu = new StringSelectMenuBuilder()
       .setCustomId('color_select')
-      .setPlaceholder('🎨 اختر ألوانك المفضلة')
+      .setPlaceholder('🎨 اختر لونك')
       .setMinValues(0)
       .setMaxValues(colors.length)
       .addOptions(colors.map(c => ({ label: c.label, value: c.value })));
@@ -55,102 +55,87 @@ client.on('messageCreate', async (message) => {
     const row = new ActionRowBuilder().addComponents(menu);
 
     const embed = new EmbedBuilder()
-      .setTitle('🎨 اختر ألوانك المفضلة')
-      .setDescription('اختر اللون اللي تحبه.\nلو شلت لون من القائمة راح تنشال رتبته منك تلقائيًا ✨')
-      .setImage('https://images.pexels.com/photos/1191710/pexels-photo-1191710.jpeg')
+      .setTitle('🎨 اختر لونك')
+      .setDescription('اختر لون واحد فقط')
       .setColor('#5865F2');
 
     await message.channel.send({ embeds: [embed], components: [row] });
   }
 });
 
-// ======== أمر إعطاء رتبة بالـ ID ========
+// ======== إعطاء رتبة (نفسك أو غيرك) ========
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith('!give-role')) return;
   if (!message.guild) return;
 
-  // تحقق الصلاحية (أو استثناء اليوزر)
   if (
     !message.member.permissions.has('ManageRoles') &&
     !ALLOWED_USERS.includes(message.author.id)
   ) {
-    return message.reply('❌ ما عندك صلاحية تعطي رتب');
+    return message.reply('❌ ما عندك صلاحية');
   }
 
-  const args = message.content.split(' ');
-  const roleId = args[1];
+  const args = message.content.split(' ').slice(1);
+  let targetMember;
+  let roleId;
 
-  if (!roleId) {
-    return message.reply('⚠️ استخدم الأمر هكذا:\n`!give-role ROLE_ID`');
+  if (args.length === 1) {
+    targetMember = message.member;
+    roleId = args[0];
+  } else if (args.length === 2) {
+    targetMember =
+      message.mentions.members.first() ||
+      await message.guild.members.fetch(args[0]).catch(() => null);
+    roleId = args[1];
+  }
+
+  if (!targetMember || !roleId) {
+    return message.reply('⚠️ الصيغة:\n`!give-role ROLE_ID`\n`!give-role @User ROLE_ID`');
   }
 
   const role = message.guild.roles.cache.get(roleId);
-  if (!role) {
-    return message.reply('❌ ما لقيت رتبة بهذا الـ ID');
-  }
+  if (!role) return message.reply('❌ الرتبة غير موجودة');
 
   try {
-    if (message.member.roles.cache.has(role.id)) {
-      return message.reply('🤷‍♂️ أنت أصلاً معك هذه الرتبة');
+    if (targetMember.roles.cache.has(role.id)) {
+      return message.reply('🤷‍♂️ معه الرتبة أصلًا');
     }
 
-    await message.member.roles.add(role);
-    message.reply(`✅ تم إعطاؤك رتبة **${role.name}**`);
-  } catch (error) {
-    console.error(error);
-    message.reply('❌ فشل إعطاء الرتبة (تأكد أن رتبة البوت أعلى)');
+    await targetMember.roles.add(role);
+    message.reply(`✅ تم إعطاء رتبة **${role.name}** لـ ${targetMember.user.tag}`);
+  } catch (err) {
+    console.error(err);
+    message.reply('❌ فشل (تأكد أن رتبة البوت أعلى)');
   }
 });
 
-// ======== التعامل مع تفاعل الألوان ========
+// ======== تفاعل الألوان ========
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isStringSelectMenu() || interaction.customId !== 'color_select') return;
 
-  try {
-    if (interaction.values.length > 1) {
-      return interaction.reply({
-        content: '⚠️ يجب أن تختار لونًا واحدًا فقط!',
-        ephemeral: true
-      });
+  const member = await interaction.guild.members.fetch(interaction.user.id);
+
+  for (const color of colors) {
+    const role = interaction.guild.roles.cache.find(r => r.name === color.role);
+    if (!role) continue;
+
+    if (interaction.values.includes(color.value)) {
+      await member.roles.add(role).catch(() => {});
+    } else {
+      await member.roles.remove(role).catch(() => {});
     }
-
-    const member = await interaction.guild.members.fetch(interaction.user.id);
-    const selectedValues = interaction.values;
-    const rolesToAdd = [];
-    const rolesToRemove = [];
-
-    for (const color of colors) {
-      const role = interaction.guild.roles.cache.find(r => r.name === color.role);
-      if (!role) continue;
-
-      if (selectedValues.includes(color.value)) {
-        if (!member.roles.cache.has(role.id)) rolesToAdd.push(role);
-      } else {
-        if (member.roles.cache.has(role.id)) rolesToRemove.push(role);
-      }
-    }
-
-    if (rolesToAdd.length) await member.roles.add(rolesToAdd);
-    if (rolesToRemove.length) await member.roles.remove(rolesToRemove);
-
-    await interaction.reply({ content: '✅ تم تحديث لونك بنجاح 🎨', ephemeral: true });
-  } catch (error) {
-    console.error(error);
-    await interaction.reply({
-      content: '❌ حدث خطأ أثناء تحديث لونك',
-      ephemeral: true
-    });
   }
+
+  interaction.reply({ content: '✅ تم تحديث لونك', ephemeral: true });
 });
 
 // ======== تشغيل البوت ========
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
-if (!TOKEN) {
-  console.error('❌ لم يتم العثور على DISCORD_BOT_TOKEN');
-  process.exit(1);
-}
+if (!TOKEN) process.exit(1);
+
 client.login(TOKEN);
 
-app.get("/", (req, res) => res.send("✅ Bot is running!"));
-app.listen(3000, () => console.log("🌐 Web server is live"));
+app.get("/", (req, res) => res.send("Bot is running"));
+app.listen(3000, () => console.log("🌐 Server running"));
+
