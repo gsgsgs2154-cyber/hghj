@@ -99,7 +99,7 @@ client.on('messageCreate', async (message) => {
 
   try {
     if (targetMember.roles.cache.has(role.id)) {
-      return message.reply('🤷‍♂️ معه الرتبة أصلًا');
+      return message.reply('🤷‍♂️ الشخص معه الرتبة أصلًا');
     }
 
     await targetMember.roles.add(role);
@@ -107,6 +107,53 @@ client.on('messageCreate', async (message) => {
   } catch (err) {
     console.error(err);
     message.reply('❌ فشل (تأكد أن رتبة البوت أعلى)');
+  }
+});
+
+// ======== سحب رتبة (نفسك أو غيرك) ========
+client.on('messageCreate', async (message) => {
+  if (message.author.bot) return;
+  if (!message.content.startsWith('!remove-role')) return;
+  if (!message.guild) return;
+
+  if (
+    !message.member.permissions.has('ManageRoles') &&
+    !ALLOWED_USERS.includes(message.author.id)
+  ) {
+    return message.reply('❌ ما عندك صلاحية');
+  }
+
+  const args = message.content.split(' ').slice(1);
+  let targetMember;
+  let roleId;
+
+  if (args.length === 1) {
+    targetMember = message.member;
+    roleId = args[0];
+  } else if (args.length === 2) {
+    targetMember =
+      message.mentions.members.first() ||
+      await message.guild.members.fetch(args[0]).catch(() => null);
+    roleId = args[1];
+  }
+
+  if (!targetMember || !roleId) {
+    return message.reply('⚠️ الصيغة:\n`!remove-role ROLE_ID`\n`!remove-role @User ROLE_ID`');
+  }
+
+  const role = message.guild.roles.cache.get(roleId);
+  if (!role) return message.reply('❌ الرتبة غير موجودة');
+
+  try {
+    if (!targetMember.roles.cache.has(role.id)) {
+      return message.reply('🤷‍♂️ الشخص ما معه هذه الرتبة');
+    }
+
+    await targetMember.roles.remove(role);
+    message.reply(`🗑 تم سحب رتبة **${role.name}** من ${targetMember.user.tag}`);
+  } catch (err) {
+    console.error(err);
+    message.reply('❌ فشل سحب الرتبة (تأكد أن رتبة البوت أعلى)');
   }
 });
 
@@ -138,4 +185,5 @@ client.login(TOKEN);
 
 app.get("/", (req, res) => res.send("Bot is running"));
 app.listen(3000, () => console.log("🌐 Server running"));
+
 
