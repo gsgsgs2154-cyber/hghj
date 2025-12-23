@@ -12,6 +12,13 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
+// ======== يوزرز مسموح لهم بدون صلاحية ========
+const ALLOWED_USERS = [
+  '809903116865634344',
+  '937018739344408608'
+];
+
+// ======== ألوان ========
 const colors = [
   { label: '⚫ أسود', value: 'black', role: 'Black' },
   { label: '🫒 زيتي', value: 'zz', role: 'zz' },
@@ -33,7 +40,7 @@ client.once('ready', () => {
   console.log(`✅ تم تسجيل الدخول كبوت: ${client.user.tag}`);
 });
 
-// ======== إرسال قائمة الألوان =========
+// ======== إرسال قائمة الألوان ========
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
@@ -57,13 +64,17 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-// ======== أمر إعطاء رتبة بالـ ID (إضافة فقط) =========
+// ======== أمر إعطاء رتبة بالـ ID ========
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith('!give-role')) return;
   if (!message.guild) return;
 
-  if (!message.member.permissions.has('ManageRoles')) {
+  // تحقق الصلاحية (أو استثناء اليوزر)
+  if (
+    !message.member.permissions.has('ManageRoles') &&
+    !ALLOWED_USERS.includes(message.author.id)
+  ) {
     return message.reply('❌ ما عندك صلاحية تعطي رتب');
   }
 
@@ -88,17 +99,17 @@ client.on('messageCreate', async (message) => {
     message.reply(`✅ تم إعطاؤك رتبة **${role.name}**`);
   } catch (error) {
     console.error(error);
-    message.reply('❌ فشل إعطاء الرتبة (تأكد من صلاحيات البوت)');
+    message.reply('❌ فشل إعطاء الرتبة (تأكد أن رتبة البوت أعلى)');
   }
 });
 
-// ======== التعامل مع تفاعل الألوان =========
+// ======== التعامل مع تفاعل الألوان ========
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isStringSelectMenu() || interaction.customId !== 'color_select') return;
 
   try {
     if (interaction.values.length > 1) {
-      return await interaction.reply({
+      return interaction.reply({
         content: '⚠️ يجب أن تختار لونًا واحدًا فقط!',
         ephemeral: true
       });
@@ -120,20 +131,20 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
 
-    if (rolesToAdd.length > 0) await member.roles.add(rolesToAdd);
-    if (rolesToRemove.length > 0) await member.roles.remove(rolesToRemove);
+    if (rolesToAdd.length) await member.roles.add(rolesToAdd);
+    if (rolesToRemove.length) await member.roles.remove(rolesToRemove);
 
     await interaction.reply({ content: '✅ تم تحديث لونك بنجاح 🎨', ephemeral: true });
   } catch (error) {
-    console.error('❌ خطأ في تعديل الألوان:', error);
+    console.error(error);
     await interaction.reply({
-      content: '❌ حدث خطأ أثناء تحديث لونك. تأكد أن البوت لديه صلاحية إدارة الرتب.',
+      content: '❌ حدث خطأ أثناء تحديث لونك',
       ephemeral: true
     });
   }
 });
 
-// ======== تشغيل البوت والسيرفر =========
+// ======== تشغيل البوت ========
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 if (!TOKEN) {
   console.error('❌ لم يتم العثور على DISCORD_BOT_TOKEN');
@@ -141,8 +152,5 @@ if (!TOKEN) {
 }
 client.login(TOKEN);
 
-app.get("/", (req, res) => {
-  res.send("✅ Bot is running!");
-});
-
-app.listen(3000, () => console.log("🌐 Web server is live on port 3000"));
+app.get("/", (req, res) => res.send("✅ Bot is running!"));
+app.listen(3000, () => console.log("🌐 Web server is live"));
