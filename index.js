@@ -62,7 +62,7 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-// ======== إعطاء رتبة (نفسك أو غيرك) ========
+// ======== إعطاء رتبة ========
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith('!give-role')) return;
@@ -109,7 +109,7 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-// ======== سحب رتبة (نفسك أو غيرك) ========
+// ======== سحب رتبة ========
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith('!remove-role')) return;
@@ -156,9 +156,12 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-// ======== تفاعل الألوان ========
+// ======== تفاعل الألوان (تم إصلاح المشكلة هنا) ========
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isStringSelectMenu() || interaction.customId !== 'color_select') return;
+
+  // مهم جدًا
+  await interaction.deferReply({ ephemeral: true });
 
   const member = await interaction.guild.members.fetch(interaction.user.id);
 
@@ -173,7 +176,7 @@ client.on('interactionCreate', async (interaction) => {
     }
   }
 
-  interaction.reply({ content: '✅ تم تحديث لونك', ephemeral: true });
+  interaction.editReply({ content: '✅ تم تحديث لونك' });
 });
 
 // ======== تشغيل البوت ========
