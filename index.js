@@ -36,6 +36,12 @@ client.once('ready', () => {
 // ===== إرسال المنيو =====
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
+   if (interaction.values.length > 1) {
+    return interaction.reply({
+      content: '❌ مسموح تختار **لون واحد فقط**',
+      ephemeral: true
+    });
+  }
   if (message.content === '!colors') {
     const menu = new StringSelectMenuBuilder()
       .setCustomId('color_select')
