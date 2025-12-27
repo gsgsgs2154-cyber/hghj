@@ -14,7 +14,8 @@ const client = new Client({
 
 // ======== يوزرز مسموح لهم ========
 const ALLOWED_USERS = [
-  '809903116865634344'
+  '809903116865634344',
+  '937018739344408608'
 ];
 
 // ======== ألوان ========
@@ -62,7 +63,7 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-// ======== إعطاء رتبة ========
+// ======== إعطاء رتبة (رد سريع) ========
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith('!give-role')) return;
@@ -96,20 +97,18 @@ client.on('messageCreate', async (message) => {
   const role = message.guild.roles.cache.get(roleId);
   if (!role) return message.reply('❌ الرتبة غير موجودة');
 
-  try {
-    if (targetMember.roles.cache.has(role.id)) {
-      return message.reply('🤷‍♂️ الشخص معه الرتبة أصلًا');
-    }
-
-    await targetMember.roles.add(role);
-    message.reply(`✅ تم إعطاء رتبة **${role.name}** لـ ${targetMember.user.tag}`);
-  } catch (err) {
-    console.error(err);
-    message.reply('❌ فشل (تأكد أن رتبة البوت أعلى)');
+  if (targetMember.roles.cache.has(role.id)) {
+    return message.reply('🤷‍♂️ الشخص معه الرتبة أصلًا');
   }
+
+  // 🔥 رد فوري
+  message.reply(`✅ تم إعطاء رتبة **${role.name}** لـ ${targetMember.user.tag}`);
+
+  // إعطاء الرتبة بدون انتظار
+  targetMember.roles.add(role).catch(() => {});
 });
 
-// ======== سحب رتبة ========
+// ======== سحب رتبة (رد سريع) ========
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith('!remove-role')) return;
@@ -143,40 +142,41 @@ client.on('messageCreate', async (message) => {
   const role = message.guild.roles.cache.get(roleId);
   if (!role) return message.reply('❌ الرتبة غير موجودة');
 
-  try {
-    if (!targetMember.roles.cache.has(role.id)) {
-      return message.reply('🤷‍♂️ الشخص ما معه هذه الرتبة');
-    }
-
-    await targetMember.roles.remove(role);
-    message.reply(`🗑 تم سحب رتبة **${role.name}** من ${targetMember.user.tag}`);
-  } catch (err) {
-    console.error(err);
-    message.reply('❌ فشل سحب الرتبة (تأكد أن رتبة البوت أعلى)');
+  if (!targetMember.roles.cache.has(role.id)) {
+    return message.reply('🤷‍♂️ الشخص ما معه هذه الرتبة');
   }
+
+  // 🔥 رد فوري
+  message.reply(`🗑 تم سحب رتبة **${role.name}** من ${targetMember.user.tag}`);
+
+  // سحب الرتبة بدون انتظار
+  targetMember.roles.remove(role).catch(() => {});
 });
 
-// ======== تفاعل الألوان (تم إصلاح المشكلة هنا) ========
+// ======== تفاعل الألوان (محسن وسريع) ========
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isStringSelectMenu() || interaction.customId !== 'color_select') return;
 
-  // مهم جدًا
-  await interaction.deferReply({ ephemeral: true });
-
   const member = await interaction.guild.members.fetch(interaction.user.id);
+
+  const addRoles = [];
+  const removeRoles = [];
 
   for (const color of colors) {
     const role = interaction.guild.roles.cache.find(r => r.name === color.role);
     if (!role) continue;
 
     if (interaction.values.includes(color.value)) {
-      await member.roles.add(role).catch(() => {});
+      if (!member.roles.cache.has(role.id)) addRoles.push(role);
     } else {
-      await member.roles.remove(role).catch(() => {});
+      if (member.roles.cache.has(role.id)) removeRoles.push(role);
     }
   }
 
-  interaction.editReply({ content: '✅ تم تحديث لونك' });
+  if (addRoles.length) member.roles.add(addRoles).catch(() => {});
+  if (removeRoles.length) member.roles.remove(removeRoles).catch(() => {});
+
+  interaction.reply({ content: '✅ تم تحديث لونك', ephemeral: true });
 });
 
 // ======== تشغيل البوت ========
