@@ -12,13 +12,6 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
-// ======== يوزرز مسموح لهم ========
-const ALLOWED_USERS = [
-  '809903116865634344',
-  '937018739344408608'
-];
-
-// ======== ألوان ========
 const colors = [
   { label: '⚫ أسود', value: 'black', role: 'Black' },
   { label: '🫒 زيتي', value: 'zz', role: 'zz' },
@@ -40,122 +33,35 @@ client.once('ready', () => {
   console.log(`✅ تم تسجيل الدخول كبوت: ${client.user.tag}`);
 });
 
-// ======== قائمة الألوان ========
+// ===== إرسال المنيو =====
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
-
   if (message.content === '!colors') {
     const menu = new StringSelectMenuBuilder()
       .setCustomId('color_select')
       .setPlaceholder('🎨 اختر لونك')
-      .setMinValues(0)
-      .setMaxValues(colors.length)
-      .addOptions(colors.map(c => ({ label: c.label, value: c.value })));
+      .setMinValues(1)
+      .setMaxValues(1) // ✅ لون واحد فقط
+      .addOptions(colors.map(c => ({
+        label: c.label,
+        value: c.value
+      })));
 
     const row = new ActionRowBuilder().addComponents(menu);
 
     const embed = new EmbedBuilder()
-      .setTitle('🎨 اختر لونك')
-      .setDescription('اختر لون واحد فقط')
+      .setTitle('🎨 اختيار اللون')
+      .setDescription('اختر **لون واحد فقط**\nأي لون قديم راح ينشال تلقائيًا')
       .setColor('#5865F2');
 
     await message.channel.send({ embeds: [embed], components: [row] });
   }
 });
 
-// ======== إعطاء رتبة (رد سريع) ========
-client.on('messageCreate', async (message) => {
-  if (message.author.bot) return;
-  if (!message.content.startsWith('!give-role')) return;
-  if (!message.guild) return;
-
-  if (
-    !message.member.permissions.has('ManageRoles') &&
-    !ALLOWED_USERS.includes(message.author.id)
-  ) {
-    return message.reply('❌ ما عندك صلاحية');
-  }
-
-  const args = message.content.split(' ').slice(1);
-  let targetMember;
-  let roleId;
-
-  if (args.length === 1) {
-    targetMember = message.member;
-    roleId = args[0];
-  } else if (args.length === 2) {
-    targetMember =
-      message.mentions.members.first() ||
-      await message.guild.members.fetch(args[0]).catch(() => null);
-    roleId = args[1];
-  }
-
-  if (!targetMember || !roleId) {
-    return message.reply('⚠️ الصيغة:\n`!give-role ROLE_ID`\n`!give-role @User ROLE_ID`');
-  }
-
-  const role = message.guild.roles.cache.get(roleId);
-  if (!role) return message.reply('❌ الرتبة غير موجودة');
-
-  if (targetMember.roles.cache.has(role.id)) {
-    return message.reply('🤷‍♂️ الشخص معه الرتبة أصلًا');
-  }
-
-  // 🔥 رد فوري
-  message.reply(`✅ تم إعطاء رتبة **${role.name}** لـ ${targetMember.user.tag}`);
-
-  // إعطاء الرتبة بدون انتظار
-  targetMember.roles.add(role).catch(() => {});
-});
-
-// ======== سحب رتبة (رد سريع) ========
-client.on('messageCreate', async (message) => {
-  if (message.author.bot) return;
-  if (!message.content.startsWith('!remove-role')) return;
-  if (!message.guild) return;
-
-  if (
-    !message.member.permissions.has('ManageRoles') &&
-    !ALLOWED_USERS.includes(message.author.id)
-  ) {
-    return message.reply('❌ ما عندك صلاحية');
-  }
-
-  const args = message.content.split(' ').slice(1);
-  let targetMember;
-  let roleId;
-
-  if (args.length === 1) {
-    targetMember = message.member;
-    roleId = args[0];
-  } else if (args.length === 2) {
-    targetMember =
-      message.mentions.members.first() ||
-      await message.guild.members.fetch(args[0]).catch(() => null);
-    roleId = args[1];
-  }
-
-  if (!targetMember || !roleId) {
-    return message.reply('⚠️ الصيغة:\n`!remove-role ROLE_ID`\n`!remove-role @User ROLE_ID`');
-  }
-
-  const role = message.guild.roles.cache.get(roleId);
-  if (!role) return message.reply('❌ الرتبة غير موجودة');
-
-  if (!targetMember.roles.cache.has(role.id)) {
-    return message.reply('🤷‍♂️ الشخص ما معه هذه الرتبة');
-  }
-
-  // 🔥 رد فوري
-  message.reply(`🗑 تم سحب رتبة **${role.name}** من ${targetMember.user.tag}`);
-
-  // سحب الرتبة بدون انتظار
-  targetMember.roles.remove(role).catch(() => {});
-});
-
-// ======== تفاعل الألوان (محسن وسريع) ========
+// ===== التعامل مع الاختيار =====
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isStringSelectMenu() || interaction.customId !== 'color_select') return;
+  if (!interaction.isStringSelectMenu()) return;
+  if (interaction.customId !== 'color_select') return;
 
   const member = await interaction.guild.members.fetch(interaction.user.id);
 
@@ -166,26 +72,27 @@ client.on('interactionCreate', async (interaction) => {
     const role = interaction.guild.roles.cache.find(r => r.name === color.role);
     if (!role) continue;
 
-    if (interaction.values.includes(color.value)) {
+    if (interaction.values[0] === color.value) {
       if (!member.roles.cache.has(role.id)) addRoles.push(role);
     } else {
       if (member.roles.cache.has(role.id)) removeRoles.push(role);
     }
   }
 
+  // ⚡ بدون انتظار عشان السرعة
   if (addRoles.length) member.roles.add(addRoles).catch(() => {});
   if (removeRoles.length) member.roles.remove(removeRoles).catch(() => {});
 
-  interaction.reply({ content: '✅ تم تحديث لونك', ephemeral: true });
+  interaction.reply({
+    content: '✅ تم تحديث لونك بنجاح 🎨',
+    ephemeral: true
+  });
 });
 
-// ======== تشغيل البوت ========
+// ===== تشغيل البوت =====
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
-if (!TOKEN) process.exit(1);
-
 client.login(TOKEN);
 
-app.get("/", (req, res) => res.send("Bot is running"));
-app.listen(3000, () => console.log("🌐 Server running"));
-
+app.get("/", (req, res) => res.send("✅ Bot is running!"));
+app.listen(3000, () => console.log("🌐 Web server is live"));
 
