@@ -36,18 +36,12 @@ client.once('ready', () => {
 // ===== إرسال المنيو =====
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
-   if (interaction.values.length > 1) {
-    return interaction.reply({
-      content: '❌ مسموح تختار **لون واحد فقط**',
-      ephemeral: true
-    });
-  }
   if (message.content === '!colors') {
     const menu = new StringSelectMenuBuilder()
       .setCustomId('color_select')
       .setPlaceholder('🎨 اختر لونك')
       .setMinValues(1)
-      .setMaxValues(1) // ✅ لون واحد فقط
+      .setMaxValues(colors.length) // نسمح بأكثر من اختيار لكن نتحقق لاحقًا
       .addOptions(colors.map(c => ({
         label: c.label,
         value: c.value
@@ -57,7 +51,7 @@ client.on('messageCreate', async (message) => {
 
     const embed = new EmbedBuilder()
       .setTitle('🎨 اختيار اللون')
-      .setDescription('اختر **لون واحد فقط**\nأي لون قديم راح ينشال تلقائيًا')
+      .setDescription('اختر لون واحد فقط، لو اخترت أكثر ستظهر رسالة خطأ')
       .setColor('#5865F2');
 
     await message.channel.send({ embeds: [embed], components: [row] });
@@ -68,6 +62,14 @@ client.on('messageCreate', async (message) => {
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isStringSelectMenu()) return;
   if (interaction.customId !== 'color_select') return;
+
+  // ❌ لو اختار أكثر من لون
+  if (interaction.values.length > 1) {
+    return interaction.reply({
+      content: '❌ مسموح تختار **لون واحد فقط**',
+      ephemeral: true
+    });
+  }
 
   const member = await interaction.guild.members.fetch(interaction.user.id);
 
