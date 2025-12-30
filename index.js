@@ -34,110 +34,98 @@ client.once('ready', () => {
   console.log(`✅ تم تسجيل الدخول كبوت: ${client.user.tag}`);
 });
 
-// ===== Logs تشخيص =====
-client.on('error', console.error);
-client.on('warn', console.warn);
-
-// ===== أمر !colors مع Select Menu والصورة =====
+// ===== أمر !colors و !delete =====
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
-  // أمر !colors
   if (message.content === '!colors') {
     const menu = new StringSelectMenuBuilder()
       .setCustomId('color_select')
       .setPlaceholder('🎨 اختر لونك')
-      .setMaxValues(colors.length)
+      .setMaxValues(1)
       .addOptions(colors.map(c => ({
         label: c.label,
         value: c.value
       })));
 
-    const selectRow = new ActionRowBuilder().addComponents(menu);
+    const row = new ActionRowBuilder().addComponents(menu);
 
     const embed = new EmbedBuilder()
       .setTitle('🎨 اختيار اللون')
-      .setDescription('اختر لون واحد فقط، لو اخترت أكثر ستظهر رسالة خطأ')
+      .setDescription('اختر لون واحد فقط')
       .setColor('#5865F2')
       .setImage('https://pistachioentertainment.com/wp-content/uploads/2020/04/assorted-color-sequins-1191710.jpg');
 
-    await message.channel.send({ embeds: [embed], components: [selectRow] });
+    await message.channel.send({ embeds: [embed], components: [row] });
   }
 
-  // أمر !delete لإظهار زر إزالة الألوان
   if (message.content === '!delete') {
-    const removeButton = new ButtonBuilder()
+    const button = new ButtonBuilder()
       .setCustomId('delete_colors')
       .setLabel('❌ إزالة اللون')
       .setStyle(ButtonStyle.Danger);
 
-    const buttonRow = new ActionRowBuilder().addComponents(removeButton);
+    const row = new ActionRowBuilder().addComponents(button);
 
-    const embed = new EmbedBuilder()
-      .setTitle('🗑️ إزالة اللون')
-      .setDescription('اضغط على الزر أدناه لإزالة جميع ألوانك')
-      .setColor('#FF0000');
-
-    await message.channel.send({ embeds: [embed], components: [buttonRow] });
+    await message.channel.send({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle('🗑️ إزالة اللون')
+          .setDescription('اضغط لإزالة جميع ألوانك')
+          .setColor('#FF0000')
+      ],
+      components: [row]
+    });
   }
 });
 
-// ===== التعامل مع Select Menu =====
+// ===== Select Menu + Button =====
 client.on('interactionCreate', async (interaction) => {
+
+  // ===== Select Menu =====
   if (interaction.isStringSelectMenu() && interaction.customId === 'color_select') {
-    if (interaction.values.length > 1) {
-      return interaction.reply({
-        content: '❌ مسموح تختار **لون واحد فقط**',
-        ephemeral: true
-      });
+    const member = await interaction.guild.members.fetch(interaction.user.id);
+
+    const addRoles = [];
+    const removeRoles = [];
+
+    for (const color of colors) {
+      const role = interaction.guild.roles.cache.find(r => r.name === color.role);
+      if (!role) continue;
+
+      if (interaction.values[0] === color.value) {
+        if (!member.roles.cache.has(role.id)) addRoles.push(role);
+      } else {
+        if (member.roles.cache.has(role.id)) removeRoles.push(role);
+      }
     }
 
-const member = await interaction.guild.members.fetch(interaction.user.id);
+    await member.roles.add(addRoles);
+    await member.roles.remove(removeRoles);
 
-const addRoles = [];
-const removeRoles = [];
+    return interaction.reply({ content: '✅ تم تحديث لونك', ephemeral: true });
+  }
 
-for (const color of colors) {
-  const role = interaction.guild.roles.cache.find(r => r.name === color.role);
-  if (!role) continue;
+  // ===== Delete Button =====
+  if (interaction.isButton() && interaction.customId === 'delete_colors') {
+    const member = await interaction.guild.members.fetch(interaction.user.id);
 
-  // إذا هذا هو اللون المختار → نضيفه فقط
-  if (interaction.values[0] === color.value) {
-    if (!member.roles.cache.has(role.id)) {
-      addRoles.push(role);
+    const removeRoles = [];
+
+    for (const color of colors) {
+      const role = interaction.guild.roles.cache.find(r => r.name === color.role);
+      if (role && member.roles.cache.has(role.id)) removeRoles.push(role);
     }
-    continue; // <<< هذا هو السطر المهم
+
+    await member.roles.remove(removeRoles);
+
+    return interaction.reply({ content: '🗑️ تم إزالة جميع الألوان', ephemeral: true });
   }
-
-  // باقي الألوان تنحذف
-  if (member.roles.cache.has(role.id)) {
-    removeRoles.push(role);
-  }
-}
-
-try {
-  if (addRoles.length) await member.roles.add(addRoles);
-  if (removeRoles.length) await member.roles.remove(removeRoles);
-} catch (e) {
-  console.error(e);
-}
-
-interaction.reply({
-  content: '✅ تم تحديث لونك بنجاح 🎨',
-  ephemeral: true
 });
 
 // ===== تشغيل البوت =====
-const TOKEN = process.env.DISCORD_BOT_TOKEN;
-
-console.log("🔍 Checking bot token...");
-console.log(TOKEN ? "✅ TOKEN FOUND" : "❌ TOKEN MISSING");
-console.log("🚀 Attempting to login bot...");
-
-client.login(TOKEN).catch(err => {
-  console.error("❌ Login failed:", err);
-});
+client.login(process.env.DISCORD_BOT_TOKEN);
 
 // ===== Web Server =====
-app.get("/", (req, res) => res.send("✅ Bot is running!"));
+app.get("/", (req, res) => res.send("Bot is running"));
 app.listen(3000, () => console.log("🌐 Web server is live"));
