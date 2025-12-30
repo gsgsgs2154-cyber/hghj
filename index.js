@@ -44,7 +44,7 @@ client.on('messageCreate', async (message) => {
   if (message.content === '!colors') {
     const menu = new StringSelectMenuBuilder()
       .setCustomId('color_select')
-      .setPlaceholder('🎨 اختر لونك')
+      .setPlaceholder('🎨 اختر لونك') // يظهر دائمًا
       .setMinValues(1)
       .setMaxValues(colors.length)
       .addOptions(colors.map(c => ({
@@ -57,8 +57,10 @@ client.on('messageCreate', async (message) => {
     const embed = new EmbedBuilder()
       .setTitle('🎨 اختيار اللون')
       .setDescription('اختر لون واحد فقط، لو اخترت أكثر ستظهر رسالة خطأ')
-      .setColor('#5865F2');
+      .setColor('#5865F2')
+      .setImage('https://pistachioentertainment.com/wp-content/uploads/2020/04/assorted-color-sequins-1191710.jpg'); // الصورة
 
+    // القائمة تبقى موجودة دايمًا
     await message.channel.send({ embeds: [embed], components: [row] });
   }
 });
