@@ -29,9 +29,14 @@ const colors = [
   { label: '🤎 بني غامق', value: 'brown', role: 'Brown' }
 ];
 
+// ===== Ready =====
 client.once('ready', () => {
   console.log(`✅ تم تسجيل الدخول كبوت: ${client.user.tag}`);
 });
+
+// ===== Logs تشخيص =====
+client.on('error', console.error);
+client.on('warn', console.warn);
 
 // ===== إرسال المنيو =====
 client.on('messageCreate', async (message) => {
@@ -41,7 +46,7 @@ client.on('messageCreate', async (message) => {
       .setCustomId('color_select')
       .setPlaceholder('🎨 اختر لونك')
       .setMinValues(1)
-      .setMaxValues(colors.length) // نسمح بأكثر من اختيار لكن نتحقق لاحقًا
+      .setMaxValues(colors.length)
       .addOptions(colors.map(c => ({
         label: c.label,
         value: c.value
@@ -63,7 +68,6 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isStringSelectMenu()) return;
   if (interaction.customId !== 'color_select') return;
 
-  // ❌ لو اختار أكثر من لون
   if (interaction.values.length > 1) {
     return interaction.reply({
       content: '❌ مسموح تختار **لون واحد فقط**',
@@ -87,7 +91,6 @@ client.on('interactionCreate', async (interaction) => {
     }
   }
 
-  // ⚡ بدون انتظار عشان السرعة
   if (addRoles.length) member.roles.add(addRoles).catch(() => {});
   if (removeRoles.length) member.roles.remove(removeRoles).catch(() => {});
 
@@ -99,8 +102,16 @@ client.on('interactionCreate', async (interaction) => {
 
 // ===== تشغيل البوت =====
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
-client.login(TOKEN);
 
+// تشخيص التوكن
+console.log("🔍 Checking bot token...");
+console.log(TOKEN ? "✅ TOKEN FOUND" : "❌ TOKEN MISSING");
+console.log("🚀 Attempting to login bot...");
+
+client.login(TOKEN).catch(err => {
+  console.error("❌ Login failed:", err);
+});
+
+// ===== Web Server =====
 app.get("/", (req, res) => res.send("✅ Bot is running!"));
 app.listen(3000, () => console.log("🌐 Web server is live"));
-
