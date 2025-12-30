@@ -45,7 +45,6 @@ client.on('messageCreate', async (message) => {
     const menu = new StringSelectMenuBuilder()
       .setCustomId('color_select')
       .setPlaceholder('🎨 اختر لونك') // يظهر دائمًا
-      .setMinValues(1)
       .setMaxValues(colors.length)
       .addOptions(colors.map(c => ({
         label: c.label,
