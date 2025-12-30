@@ -92,49 +92,39 @@ client.on('interactionCreate', async (interaction) => {
       });
     }
 
-    const member = await interaction.guild.members.fetch(interaction.user.id);
+const member = await interaction.guild.members.fetch(interaction.user.id);
 
-    const addRoles = [];
-    const removeRoles = [];
+const addRoles = [];
+const removeRoles = [];
 
-    for (const color of colors) {
-      const role = interaction.guild.roles.cache.find(r => r.name === color.role);
-      if (!role) continue;
+for (const color of colors) {
+  const role = interaction.guild.roles.cache.find(r => r.name === color.role);
+  if (!role) continue;
 
-      if (interaction.values[0] === color.value) {
-        if (!member.roles.cache.has(role.id)) addRoles.push(role);
-      } else {
-        if (member.roles.cache.has(role.id)) removeRoles.push(role);
-      }
+  // إذا هذا هو اللون المختار → نضيفه فقط
+  if (interaction.values[0] === color.value) {
+    if (!member.roles.cache.has(role.id)) {
+      addRoles.push(role);
     }
-
-    if (addRoles.length) member.roles.add(addRoles).catch(() => {});
-    if (removeRoles.length) member.roles.remove(removeRoles).catch(() => {});
-
-    interaction.reply({
-      content: '✅ تم تحديث لونك بنجاح 🎨',
-      ephemeral: true
-    });
+    continue; // <<< هذا هو السطر المهم
   }
 
-  // ===== التعامل مع الزر الأحمر لإزالة الألوان =====
-    if (interaction.isButton() && interaction.customId === 'delete_colors') {
-    const member = await interaction.guild.members.fetch(interaction.user.id);
-
-    const removeRoles = [];
-    for (const color of colors) {
-      const role = interaction.guild.roles.cache.find(r => r.name === color.role);
-      if (!role) continue;
-      if (member.roles.cache.has(role.id)) removeRoles.push(role);
-    }
-
-    if (removeRoles.length) member.roles.remove(removeRoles).catch(() => {});
-
-    interaction.reply({
-      content: '✅ تم إزالة اللون بنجاح!',
-      ephemeral: true
-    });
+  // باقي الألوان تنحذف
+  if (member.roles.cache.has(role.id)) {
+    removeRoles.push(role);
   }
+}
+
+try {
+  if (addRoles.length) await member.roles.add(addRoles);
+  if (removeRoles.length) await member.roles.remove(removeRoles);
+} catch (e) {
+  console.error(e);
+}
+
+interaction.reply({
+  content: '✅ تم تحديث لونك بنجاح 🎨',
+  ephemeral: true
 });
 
 // ===== تشغيل البوت =====
