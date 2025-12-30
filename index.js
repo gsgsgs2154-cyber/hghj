@@ -131,7 +131,7 @@ client.on('interactionCreate', async (interaction) => {
     if (removeRoles.length) member.roles.remove(removeRoles).catch(() => {});
 
     interaction.reply({
-      content: '✅ تم إزالة جميع ألوانك!',
+      content: '✅ تم إزالة اللون بنجاح!',
       ephemeral: true
     });
   }
